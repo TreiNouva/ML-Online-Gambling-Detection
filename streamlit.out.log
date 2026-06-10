@@ -1,0 +1,82 @@
+
+Collecting usage statistics. To deactivate, set browser.gatherUsageStats to false.
+
+
+  You can now view your Streamlit app in your browser.
+
+  Local URL: http://localhost:8501
+  Network URL: http://192.168.1.33:8501
+  External URL: http://182.253.54.71:8501
+
++------------------------- Traceback (most recent call last) --------------------------+
+| C:\Users\MSI THIN                                                                    |
+| 15\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\scrip |
+| trunner\exec_code.py:129 in exec_func_with_error_handling                            |
+|                                                                                      |
+| C:\Users\MSI THIN                                                                    |
+| 15\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\scrip |
+| trunner\script_runner.py:667 in code_to_exec                                         |
+|                                                                                      |
+| C:\Users\MSI THIN                                                                    |
+| 15\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\scrip |
+| trunner\script_runner.py:165 in _mpa_v1                                              |
+|                                                                                      |
+| C:\Users\MSI THIN                                                                    |
+| 15\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\navigation\pa |
+| ge.py:303 in run                                                                     |
+|                                                                                      |
+| C:\judol_v2\app.py:63 in <module>                                                    |
+|                                                                                      |
+|   60 elif "Moderasi"  in page:                                                       |
+|   61     from pages.bulk_moderation  import show; show()                             |
+|   62 elif "Dashboard" in page:                                                       |
+| > 63     from pages.analytics        import show; show()                             |
+|   64                                                                                 |
+|                                                                                      |
+| C:\judol_v2\pages\analytics.py:7 in <module>                                         |
+|                                                                                      |
+|     4 import matplotlib                                                              |
+|     5 matplotlib.use('Agg')                                                          |
+|     6 import matplotlib.pyplot as plt                                                |
+| >   7 import seaborn as sns                                                          |
+|     8 from utils.model_utils import load_model                                       |
+|     9                                                                                |
+|    10 MODELS  = ["SVM","Logistic Regression","Naive Bayes","Random Forest"]          |
++--------------------------------------------------------------------------------------+
+ModuleNotFoundError: No module named 'seaborn'
++------------------------- Traceback (most recent call last) --------------------------+
+| C:\Users\MSI THIN                                                                    |
+| 15\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\scrip |
+| trunner\exec_code.py:129 in exec_func_with_error_handling                            |
+|                                                                                      |
+| C:\Users\MSI THIN                                                                    |
+| 15\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\scrip |
+| trunner\script_runner.py:667 in code_to_exec                                         |
+|                                                                                      |
+| C:\Users\MSI THIN                                                                    |
+| 15\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\runtime\scrip |
+| trunner\script_runner.py:165 in _mpa_v1                                              |
+|                                                                                      |
+| C:\Users\MSI THIN                                                                    |
+| 15\AppData\Local\Programs\Python\Python312\Lib\site-packages\streamlit\navigation\pa |
+| ge.py:303 in run                                                                     |
+|                                                                                      |
+| C:\judol_v2\app.py:63 in <module>                                                    |
+|                                                                                      |
+|   60 elif "Moderasi"  in page:                                                       |
+|   61     from pages.bulk_moderation  import show; show()                             |
+|   62 elif "Dashboard" in page:                                                       |
+| > 63     from pages.analytics        import show; show()                             |
+|   64                                                                                 |
+|                                                                                      |
+| C:\judol_v2\pages\analytics.py:7 in <module>                                         |
+|                                                                                      |
+|     4 import matplotlib                                                              |
+|     5 matplotlib.use('Agg')                                                          |
+|     6 import matplotlib.pyplot as plt                                                |
+| >   7 import seaborn as sns                                                          |
+|     8 from utils.model_utils import load_model                                       |
+|     9                                                                                |
+|    10 MODELS  = ["SVM","Logistic Regression","Naive Bayes","Random Forest"]          |
++--------------------------------------------------------------------------------------+
+ModuleNotFoundError: No module named 'seaborn'
