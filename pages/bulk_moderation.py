@@ -15,8 +15,8 @@ def show():
                 padding:10px 18px;margin-bottom:18px;">
         <span style="color:#e2e8f0;">⭐ Model aktif:
         <b style="color:#38bdf8;">SVM</b>
-        — Accuracy <b style="color:#38bdf8;">96.55%</b>
-        | F1-Score <b style="color:#38bdf8;">96.55%</b></span>
+        — Accuracy <b style="color:#38bdf8;">93.29%</b>
+        | F1-Score <b style="color:#38bdf8;">93.30%</b></span>
     </div>""", unsafe_allow_html=True)
 
     bundle = load_model()
