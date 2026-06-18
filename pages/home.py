@@ -49,10 +49,10 @@ def show():
                     border-radius:14px;padding:22px;text-align:center;">
             <div style="font-size:2.5rem;">⚙️</div>
             <h3 style="color:#38bdf8;margin:8px 0;">Support Vector Machine</h3>
-            <div style="font-size:2.8rem;font-weight:700;color:white;margin:10px 0;">93.29%</div>
+            <div style="font-size:2.8rem;font-weight:700;color:white;margin:10px 0;">94.19%</div>
             <div style="color:#94a3b8;font-size:0.9rem;">Accuracy pada data test</div>
             <div style="color:#60a5fa;font-size:1rem;margin-top:6px;font-weight:600;">
-                F1-Score: 93.30%
+                F1-Score: 94.19%
             </div>
         </div>""", unsafe_allow_html=True)
 
@@ -115,4 +115,4 @@ def show():
         </div>""", unsafe_allow_html=True)
 
     st.markdown("---")
-    st.caption("Kelompok 13 · NLP Project · Dataset: TikTok & YouTube comments · Model: SVM (F1 93.30%)")
+    st.caption("Kelompok 13 · NLP Project · Dataset: TikTok & YouTube comments · Model: SVM (F1 94.19%)")

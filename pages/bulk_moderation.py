@@ -15,8 +15,8 @@ def show():
                 padding:10px 18px;margin-bottom:18px;">
         <span style="color:#e2e8f0;">⭐ Model aktif:
         <b style="color:#38bdf8;">SVM</b>
-        — Accuracy <b style="color:#38bdf8;">93.29%</b>
-        | F1-Score <b style="color:#38bdf8;">93.30%</b></span>
+        — Accuracy <b style="color:#38bdf8;">94.19%</b>
+        | F1-Score <b style="color:#38bdf8;">94.19%</b></span>
     </div>""", unsafe_allow_html=True)
 
     bundle = load_model()
@@ -86,7 +86,7 @@ def show():
     df_w  = df.head(int(max_rows)).copy()
     total = len(df_w)
     prog  = st.progress(0, text="Memulai...")
-    labels, confs, risks = [], [], []
+    labels, confs, risks, intents = [], [], [], []
 
     for i, txt in enumerate(df_w[text_col].astype(str)):
         r    = predict_one(txt, bundle)
@@ -95,6 +95,7 @@ def show():
         sc   = conf if r["label"]==1 else 0
         risk = "Berbahaya" if sc>=70 else ("Perlu Review" if sc>=40 else "Aman")
         labels.append(lbl); confs.append(conf); risks.append(risk)
+        intents.append(r.get("intent") or "-")
         prog.progress(int((i+1)/total*100), text=f"Memproses {i+1}/{total}...")
 
     prog.empty()
@@ -103,6 +104,7 @@ def show():
     df_w["prediksi"]   = labels
     df_w["confidence"] = confs
     df_w["risk_level"] = risks
+    df_w["intent"]     = intents
 
     # Step 5: Ringkasan
     st.markdown("---")
@@ -112,14 +114,16 @@ def show():
     aman_n  = labels.count("Aman")
     bhs_n   = risks.count("Berbahaya")
     rev_n   = risks.count("Perlu Review")
+    unc_n   = intents.count("Uncategorized")
 
-    c1,c2,c3,c4,c5 = st.columns(5)
+    c1,c2,c3,c4,c5,c6 = st.columns(6)
     for col,val,lbl,color in [
         (c1,total,   "Total",           "#60a5fa"),
         (c2,judol_n, "🚫 Judol",        "#f87171"),
         (c3,aman_n,  "✅ Aman",         "#4ade80"),
         (c4,bhs_n,   "⛔ Berbahaya",    "#ef4444"),
         (c5,rev_n,   "⚠️ Perlu Review", "#fbbf24"),
+        (c6,unc_n,   "❔ Uncategorized","#a78bfa"),
     ]:
         col.markdown(f"""
         <div style="background:#0f172a;border:1px solid {color}55;
@@ -157,6 +161,11 @@ def show():
 
     # Tabel
     st.markdown("### 📋 Tabel Hasil Moderasi")
+    st.caption("Kolom **intent** menjelaskan alasan jika sistem mengubah keputusan awal: "
+               "*Kritik/Penegakan Hukum*, *Curhat/Pengalaman Pribadi*, atau *Diskusi Berita/Isu Sosial* "
+               "berarti komentar menyebut kata terkait judi namun bukan promosi. "
+               "*Uncategorized* berarti tidak ada pola yang dikenali dan model kurang yakin pada hasilnya — "
+               "perlu ditinjau manual.")
     df_show = df_w.copy()
     if filter_opt=="Judol saja":  df_show = df_show[df_show["prediksi"]=="Judol"]
     elif filter_opt=="Aman saja": df_show = df_show[df_show["prediksi"]=="Aman"]

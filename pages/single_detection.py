@@ -19,8 +19,8 @@ def show():
                 padding:10px 18px;margin-bottom:18px;">
         <span style="color:#e2e8f0;">⭐ Model aktif:
         <b style="color:#38bdf8;">SVM</b>
-        &nbsp;—&nbsp; Accuracy <b style="color:#38bdf8;">93.29%</b>
-        &nbsp;|&nbsp; F1-Score <b style="color:#38bdf8;">93.30%</b></span>
+        &nbsp;—&nbsp; Accuracy <b style="color:#38bdf8;">94.19%</b>
+        &nbsp;|&nbsp; F1-Score <b style="color:#38bdf8;">94.19%</b></span>
     </div>""", unsafe_allow_html=True)
 
     st.markdown("---")
@@ -122,3 +122,19 @@ def show():
 
         with st.expander("🔧 Lihat teks setelah preprocessing"):
             st.code(res["clean"] or "(kosong setelah cleaning)", language=None)
+
+        intent = res.get("intent")
+        if intent == "Uncategorized":
+            st.markdown("""
+            <div style="background:#1e1b3a;border:1px solid #a78bfa;border-radius:10px;
+                        padding:12px 16px;margin-top:10px;">
+                <span style="color:#c4b5fd;">❔ <b>Uncategorized</b> — sistem tidak menemukan pola
+                yang dikenali dan model kurang yakin pada hasil ini. Disarankan ditinjau manual.</span>
+            </div>""", unsafe_allow_html=True)
+        elif intent:
+            st.markdown(f"""
+            <div style="background:#0f2e1e;border:1px solid #4ade80;border-radius:10px;
+                        padding:12px 16px;margin-top:10px;">
+                <span style="color:#bbf7d0;">ℹ️ <b>Intent terdeteksi: {intent}</b> — komentar ini
+                menyebut kata terkait judi, namun bukan promosi. Itu sebabnya hasilnya Aman.</span>
+            </div>""", unsafe_allow_html=True)

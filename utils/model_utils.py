@@ -2,8 +2,6 @@ import pickle, re, numpy as np
 import streamlit as st
 
 # ── Regex: PROMO pattern (commercial / recruitment intent) ────
-# v2: tambah pola "main di situs aku/ku" — promosi terselubung yang
-# menyamar sebagai keluhan ("nyesel main di tempat lain...")
 PROMO_RE = re.compile(
     r'\balex\w*17\b|4lexis\w*17|\bmandalika\s*77\b|\bweton\s*88\b|\bpulau\s*77\w\b|\bpulauwin\b|'
     r'\bsl[o0]t\b.{0,50}\b(gacor|maxwin|terpercaya|daftar|deposit|bonus|scatter|x\d+)\b|'
@@ -24,8 +22,6 @@ PROMO_RE = re.compile(
 )
 
 # Regex: ANTI-judol pattern (negative/critical/prohibition sentiment)
-# v2: tambah kata "dilarang/terlarang/larang", dan perketat "nyesel/kapok"
-# agar hanya cocok jika eksplisit terkait konteks judi (bukan kata berdiri sendiri)
 ANTI_RE = re.compile(
     r'\b(haram|bahaya|dosa|rugi|bangkrut|hancur|rusak|tobat|insaf|kapok)\b|'
     r'\b(dilarang|terlarang|jangan|stop|hindari|tinggalkan|berhenti|keluar|lepas|larang)\b.{0,50}\b(judi|judol|slot|gambling|main)\b|'
@@ -45,6 +41,20 @@ ANTI_RE = re.compile(
 def load_model():
     with open("model/judol_model.pkl", "rb") as f:
         return pickle.load(f)
+
+# Stopword Bahasa Indonesia netral — dihapus supaya tidak dianggap fitur
+# pembeda topik oleh TF-IDF (mis. "lagi", "yang", "kalo" yang ternyata
+# punya koefisien tinggi di SVM hanya karena gaya tulisan, bukan makna)
+STOPWORDS_ID = set("""
+yang dan di ke dari pada untuk dengan atau ini itu juga lagi saja akan
+sudah belum masih bisa ada tidak tak ga gak engga nggak ngga jadi karena
+karna kalo kalau klo kl jika kl bila maka tapi tp namun walau walaupun
+biar agar supaya hanya cuma cuman pun lah kah deh dong sih nih situ sini
+sana mereka kita kami saya aku gw gue lo lu kamu anda dia ia nya mu ku
+pak bu bang kak adek mas mbak om tante banget bgt sekali amat terlalu
+paling lebih kurang antara sambil sampai hingga sebelum sesudah setelah
+ketika saat waktu tahun bulan hari jam menit detik nya an kan in
+""".split())
 
 NORM = {
     'yg':'yang','dgn':'dengan','gk':'tidak','ga':'tidak','gak':'tidak',
@@ -74,17 +84,67 @@ def preprocess(text):
     text = re.sub(r'\d+','',text)
     text = re.sub(r'[^a-z\s]',' ',text)
     words = [NORM.get(w,w) for w in text.split()]
+    words = [w for w in words if w not in STOPWORDS_ID]
     return re.sub(r'\s+',' ',' '.join(words)).strip()
 
 BEST_MODEL = "SVM"
 
+# ── Lapisan Intent (v8) ──────────────────────────────────────
+# Menutupi keterbatasan semantik: komentar yang menyebut kata terkait
+# judi tapi sebenarnya berisi kritik/penegakan hukum, curhat pribadi,
+# atau diskusi berita/isu sosial — bukan promosi maupun topik biasa.
+KRITIK_HUKUM_RE = re.compile(
+    r'\btangkap\b.{0,40}\b(bandar|artis|penjudi|streamer|pelaku|admin)\b|'
+    r'\b(bandar|artis|penjudi|streamer|pelaku)\b.{0,40}\btangkap\b|'
+    r'\bdiberantas\b.{0,40}\b(situs|bandar|judi)\b|'
+    r'\b(situs|bandar|judi)\b.{0,40}\bdiberantas\b|'
+    r'\bdi\s*brantas\b.{0,40}\b(judi|situs|bandar)\b|'
+    r'\b(judi|situs|bandar)\b.{0,40}\bdi\s*brantas\b|'
+    r'\busut\w*\b.{0,80}\b(judi|kasus|bandar)\b|'
+    r'\b(judi|kasus|bandar)\b.{0,80}\busut\w*\b|'
+    r'\bditangkap\b.{0,60}\bpromosi\b.{0,40}\b(judi|judol|slot)\b|'
+    r'\bpromosi\b.{0,40}\b(judi|judol|slot)\b.{0,60}\bditangkap\b',
+    re.IGNORECASE | re.DOTALL
+)
+CURHAT_RE = re.compile(
+    r'\bketemu\s+penjudi\b|\bkenal\s+penjudi\b|\bsuami\s+(tukang\s+)?judi\b|'
+    r'\bistri\s+(tukang\s+)?judi\b|\bnasehat\w*\b.{0,80}\bpenjudi\b|'
+    r'\bpenjudi\b.{0,80}\bnasehat\w*\b|\bsusah\s+dinasehat\w*\b|'
+    r'\bbreak\s+dulu\b.{0,30}\bpenjudi\b|\bmusuhi\b.{0,40}\bpenjudi\b|'
+    r'\bbebal\b.{0,40}\bpenjudi\b|\bpenjudi\b.{0,40}\bbebal\b',
+    re.IGNORECASE | re.DOTALL
+)
+DISKUSI_BERITA_RE = re.compile(
+    r'\bbansos\b.{0,100}\b(judi|judol|penjudi)\b|\b(judi|judol|penjudi)\b.{0,100}\bbansos\b|'
+    r'\bkasus\b.{0,80}\b(judi|judol)\b|\b(judi|judol)\b.{0,80}\bkasus\b|'
+    r'\b\d+\s*[tT]\b.{0,40}\bjudi\b|\bjudi\b.{0,40}\b\d+\s*[tT]\b|'
+    r'\bpajak\b.{0,30}\bjudi\b|\bjudi\b.{0,30}\bpajak\b|'
+    r'\bkorupsi\b.{0,40}\bjudi\b|\bjudi\b.{0,40}\bkorupsi\b',
+    re.IGNORECASE | re.DOTALL
+)
+
+INTENT_LABELS = {
+    "kritik_hukum": "Kritik/Penegakan Hukum",
+    "curhat": "Curhat/Pengalaman Pribadi",
+    "diskusi_berita": "Diskusi Berita/Isu Sosial",
+}
+INTENT_CONF = 0.90          # confidence tetap untuk hasil match pola intent
+SVM_DOUBT_THRESHOLD = 0.70  # di bawah ini, SVM dianggap "ragu"
+
 def predict_one(text, bundle):
     """
-    Hybrid prediction:
-    1. Cek ANTI_RE dulu  → jika cocok (dan tidak ada promo), label 0 (Aman)
-    2. Cek PROMO_RE       → jika cocok (dan tidak ada anti), label 1 (Judol)
-    3. Keduanya cocok (konflik) → SVM diberi prioritas, tapi bias ke 0 jika SVM ragu
-    4. Tidak ada regex cocok → pakai prediksi SVM murni
+    Hybrid prediction (v8 — dengan lapisan Intent):
+    1. Cek ANTI_RE dulu  → jika cocok (dan tidak ada promo), label 0 (Aman). Ini
+       sinyal paling dipercaya, tidak akan ditimpa oleh lapisan Intent.
+    2. Cek KRITIK_HUKUM_RE / CURHAT_RE / DISKUSI_BERITA_RE → jika salah satu cocok,
+       maka komentar dianggap BUKAN promosi judol, walau ada kata terkait judi.
+       Lapisan ini bisa menimpa hasil PROMO_RE (karena PROMO_RE cukup general dan
+       rawan salah tangkap konteks panjang) maupun hasil SVM yang ragu.
+    3. Cek PROMO_RE → jika cocok (dan tidak ada anti/intent lain), label 1 (Judol).
+    4. Tidak ada regex cocok sama sekali, dan SVM juga ragu (confidence rendah)
+       → beri label tambahan "Uncategorized" sebagai sinyal bahwa keputusan
+       model kurang yakin dan tidak match pola apapun yang dikenal sistem.
+    5. Sisanya → pakai prediksi SVM murni.
     """
     original_text = str(text)
     clean = preprocess(original_text)
@@ -92,26 +152,57 @@ def predict_one(text, bundle):
     is_anti  = bool(ANTI_RE.search(original_text))
     is_promo = bool(PROMO_RE.search(original_text))
 
+    is_kh = bool(KRITIK_HUKUM_RE.search(original_text))
+    is_ch = bool(CURHAT_RE.search(original_text))
+    is_db = bool(DISKUSI_BERITA_RE.search(original_text))
+    intent_key = "kritik_hukum" if is_kh else ("curhat" if is_ch else ("diskusi_berita" if is_db else None))
+    intent = INTENT_LABELS.get(intent_key) if intent_key else None
+
+    # ANTI_RE paling dipercaya — selesai di sini, tidak perlu cek intent lagi
     if is_anti and not is_promo:
         return {"label": 0, "conf": 0.97, "clean": clean,
-                "override": "anti-judol sentiment"}
+                "override": "anti-judol sentiment", "intent": None}
+
+    # Hitung dulu hasil dasar (PROMO_RE atau SVM) sebagai pembanding
     if is_promo and not is_anti:
-        return {"label": 1, "conf": 0.97, "clean": clean,
-                "override": "promo pattern"}
-
-    model = bundle['models'][BEST_MODEL]
-    vec   = bundle['tfidf'].transform([clean])
-    label = int(model.predict(vec)[0])
-    if hasattr(model, 'predict_proba'):
-        conf = float(model.predict_proba(vec)[0][label])
-    elif hasattr(model, 'decision_function'):
-        raw  = model.decision_function(vec)[0]
-        conf = float(1 / (1 + np.exp(-abs(raw))))
+        base_label, base_conf, base_override = 1, 0.97, "promo pattern"
     else:
-        conf = 1.0
+        model = bundle['models'][BEST_MODEL]
+        vec   = bundle['tfidf'].transform([clean])
+        base_label = int(model.predict(vec)[0])
+        if hasattr(model, 'predict_proba'):
+            base_conf = float(model.predict_proba(vec)[0][base_label])
+        elif hasattr(model, 'decision_function'):
+            raw = model.decision_function(vec)[0]
+            base_conf = float(1 / (1 + np.exp(-abs(raw))))
+        else:
+            base_conf = 1.0
+        base_override = None
+        if is_anti and is_promo:
+            base_label, base_conf = 0, max(base_conf, 0.75)
+            base_override = None
 
-    if is_anti and is_promo:
-        label = 0
-        conf  = max(conf, 0.75)
+    # Lapisan Intent: override jika cukup kuat dibanding hasil dasar
+    if intent is not None:
+        came_from_promo_regex = (base_override == "promo pattern")
+        svm_is_doubtful = base_conf < SVM_DOUBT_THRESHOLD
+        intent_stronger_than_svm = (base_override is None) and (INTENT_CONF >= base_conf)
 
-    return {"label": label, "conf": conf, "clean": clean, "override": None}
+        if came_from_promo_regex or svm_is_doubtful or intent_stronger_than_svm:
+            return {"label": 0, "conf": INTENT_CONF, "clean": clean,
+                    "override": f"intent: {intent}", "intent": intent}
+        else:
+            return {"label": base_label, "conf": base_conf, "clean": clean,
+                    "override": base_override, "intent": intent}
+
+    if base_override is not None:
+        return {"label": base_label, "conf": base_conf, "clean": clean,
+                "override": base_override, "intent": None}
+
+    # Tidak ada regex apapun yang cocok, dan SVM juga ragu -> Uncategorized
+    if base_conf < SVM_DOUBT_THRESHOLD:
+        return {"label": base_label, "conf": base_conf, "clean": clean,
+                "override": None, "intent": "Uncategorized"}
+
+    return {"label": base_label, "conf": base_conf, "clean": clean,
+            "override": None, "intent": None}
